@@ -6,11 +6,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>高考3500词 · 课本出现查询</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 <style>
 :root{--bg:#f5f7fa;--card:#fff;--primary:#4472c4;--red:#c00000;--redbg:#fde8e8;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
-body{padding-bottom:env(safe-area-inset-bottom)}
+body{padding-bottom:env(safe-area-inset-bottom);visibility:hidden}
+.userbar{float:right;display:flex;align-items:center;gap:12px;font-size:13px}
+.userbar .who{opacity:.95}
+.userbar .logout{padding:6px 12px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;cursor:pointer;font-size:12px}
+.userbar .logout:hover{background:rgba(255,255,255,.3)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
 header{background:linear-gradient(135deg,#4472c4,#2e5aa0);color:#fff;padding:32px 0 28px}
@@ -64,6 +69,7 @@ th:nth-child(n+3),td:nth-child(n+3){padding:9px 3px}
 </head>
 <body>
 <header><div class="wrap">
+<div class="userbar" id="userbar"></div>
 <h1>高考3500词 · 课本出现查询</h1>
 <p>搜集版 3,844 词 · 中文释义 + 人教版七册教材出现标记（必修1-3 / 选择性必修1-4）</p>
 <a href="flashcards.html" class="flashlink">🎴 进入闪卡模式 · 标记认识/不认识 →</a>
@@ -123,6 +129,10 @@ const PAGE=30;
 const BOOKS=['book1','book2','book3','xbook1','xbook2','xbook3','xbook4'];
 let all=[],filter='all',page=1,kw='',sort='word';
 
+// 登录守卫：未登录直接跳转，不渲染任何内容
+const _authed = guardPage();
+if(_authed) renderUserBar(document.getElementById('userbar'));
+
 async function load(){
   all=[]; const SIZE=1000; let from=0;
   while(true){
@@ -171,6 +181,6 @@ document.getElementById('filters').addEventListener('click',e=>{
 });
 document.getElementById('prev').onclick=()=>{if(page>1){page--;render();window.scrollTo(0,300)}};
 document.getElementById('next').onclick=()=>{page++;render();window.scrollTo(0,300)};
-load();
+if(_authed) load();
 </script>
 </body></html>
