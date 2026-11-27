@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>闪卡模式 · 找出不认识的单词</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--primary:#4472c4;--red:#c00000;--green:#0a8a4a;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+header{background:linear-gradient(135deg,#4472c4,#2e5aa0);color:#fff;padding:24px 0}
+header h1{font-size:23px;font-weight:700}
+header p{opacity:.9;font-size:13px;margin-top:4px}
+.back{display:inline-block;margin-top:12px;padding:8px 14px;background:#fff;color:var(--primary);border-radius:6px;text-decoration:none;font-size:13px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+.stat{background:var(--card);border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);text-align:center}
+.stat .num{font-size:24px;font-weight:700;line-height:1.2}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:3px}
+.s1 .num{color:var(--primary)}.s2 .num{color:var(--green)}.s3 .num{color:var(--red)}.s4 .num{color:#9ca3af}
+.modebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.mbtn{padding:8px 15px;border:1px solid var(--border);border-radius:20px;background:#fff;color:var(--text);cursor:pointer;font-size:13px;transition:.15s;min-height:38px}
+.mbtn:hover{border-color:var(--primary)}
+.mbtn.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.modebar .tip{margin-left:auto;color:var(--muted);font-size:12px}
+.card{background:var(--card);border-radius:16px;padding:40px 30px;box-shadow:0 4px 20px rgba(0,0,0,.08);border:1px solid var(--border);text-align:center;min-height:320px;display:flex;flex-direction:column;justify-content:center;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:pointer}
+.card .idx{color:var(--muted);font-size:13px;margin-bottom:18px}
+.card .word{font-size:52px;font-weight:700;letter-spacing:1px;color:var(--text);word-break:break-word}
+.card .hint{color:var(--muted);font-size:14px;margin-top:22px}
+.card .answer{margin-top:22px;padding-top:20px;border-top:1px dashed var(--border)}
+.card .meaning{font-size:20px;color:#374151}
+.card .books{margin-top:12px;font-size:13px;color:var(--muted)}
+.badge{display:inline-block;padding:3px 9px;border-radius:12px;background:#eef2f9;color:var(--primary);font-size:12px;margin:2px}
+.badge.k{background:#e6f7ef;color:var(--green)}
+.badge.u{background:#fde8e8;color:var(--red)}
+.actions{display:flex;gap:14px;justify-content:center;margin:22px 0;flex-wrap:wrap}
+.btn{padding:14px 30px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:.15s;color:#fff;min-height:48px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn-show{background:var(--primary)}
+.btn-known{background:var(--green)}
+.btn-unknown{background:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.nav button{padding:10px 16px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:13px;min-height:42px}
+.nav button:disabled{opacity:.4;cursor:not-allowed}
+.nav span{color:var(--muted);font-size:13px}
+.done{text-align:center;padding:70px 20px;color:var(--muted);font-size:17px}
+.done h2{color:var(--green);font-size:26px;margin-bottom:10px}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.resume{color:var(--primary);font-size:12px;margin-left:8px}
+@media(min-width:601px) and (max-width:1024px){.wrap{max-width:760px}}
+@media(max-width:600px){
+  .wrap{padding:0 12px}
+  header{padding:18px 0}
+  header h1{font-size:20px}
+  header p{font-size:12px}
+  .stats{gap:8px;margin:14px 0}
+  .stat{padding:10px 6px}
+  .stat .num{font-size:20px}
+  .stat .lbl{font-size:11px}
+  .modebar{gap:6px}
+  .mbtn{padding:7px 12px;font-size:12px}
+  .modebar .tip{display:none}
+  .card{padding:26px 16px;min-height:260px;border-radius:14px}
+  .card .word{font-size:38px}
+  .card .meaning{font-size:17px}
+  .card .hint{font-size:13px;margin-top:16px}
+  .actions{gap:8px;margin:16px 0}
+  .btn{padding:13px 12px;font-size:14px;flex:1;min-width:0}
+  .btn-show{flex-basis:100%;flex:none}
+  .nav button{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>🎴 闪卡模式</h1>
+<p>先想，再翻卡看释义，然后标记「认识 / 不认识」。每次判断都会记录到数据库，下次进入自动回到上次位置。</p>
+<a href="index.html" class="back">← 返回词表</a>
+</div></header>
+
+<div class="wrap">
+<div class="stats">
+<div class="stat s1"><div class="num" id="stTotal">—</div><div class="lbl">总词数</div></div>
+<div class="stat s2"><div class="num" id="stKnown">—</div><div class="lbl">确认认识</div></div>
+<div class="stat s3"><div class="num" id="stUnknown">—</div><div class="lbl">确认不认识</div></div>
+<div class="stat s4"><div class="num" id="stLeft">—</div><div class="lbl">未确认</div></div>
+</div>
+
+<div class="modebar">
+<button class="mbtn on" data-m="all">全部</button>
+<button class="mbtn" data-m="unseen">未确认</button>
+<button class="mbtn" data-m="unknown">不认识（重点复习）</button>
+<button class="mbtn" data-m="known">认识</button>
+<span class="tip">点卡片翻卡 · 左右滑切换 · 空格翻卡 · ←=不认识 →=认识</span>
+</div>
+
+<div class="card" id="card">
+<div class="idx" id="idx">加载中…<span class="resume" id="resume"></span></div>
+<div class="word" id="word">…</div>
+<div class="hint" id="hint">先回忆词义，点卡片或按钮翻卡</div>
+<div class="answer" id="answer" style="display:none">
+<div class="meaning" id="meaning"></div>
+<div class="books" id="books"></div>
+<div style="margin-top:14px" id="curstate"></div>
+</div>
+</div>
+
+<div class="actions">
+<button class="btn btn-show" id="btnShow">显示释义</button>
+<button class="btn btn-unknown" id="btnUnknown" disabled>✗ 不认识</button>
+<button class="btn btn-known" id="btnKnown" disabled>✓ 认识</button>
+</div>
+<div class="nav">
+<button id="prev">← 上一张</button>
+<span id="pos">0 / 0</span>
+<button id="next">下一张 →</button>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL='https://vrpfpjlhqqsgbgpuxeqf.supabase.co';
+const KEY='sb_publishable_q6KSt9ZKO7Ql5uKrMrIWyQ_07t42Lwp';
+const sb=supabase.createClient(SUPA_URL,KEY);
+const BKS=[['book1','必修1'],['book2','必修2'],['book3','必修3'],['xbook1','选必1'],['xbook2','选必2'],['xbook3','选必3'],['xbook4','选必4']];
+const MODES=['all','unseen','unknown','known'];
+let all=[],progress={},mode='all',list=[],pos=0,shown=false,cid=null,resumed=false;
+
+function getCid(){
+  let c=localStorage.getItem('fc_client_id');
+  if(!c){c='c_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);localStorage.setItem('fc_client_id',c);}
+  return c;
+}
+function loadStates(){try{return JSON.parse(localStorage.getItem('fc_states')||'{}');}catch(e){return {};}}
+function saveState(){
+  const st=loadStates();
+  st[mode]={word:list[pos]?list[pos].word:null,pos:pos};
+  try{localStorage.setItem('fc_states',JSON.stringify(st));localStorage.setItem('fc_mode',mode);}catch(e){}
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1400);}
+
+async function load(){
+  cid=getCid();
+  all=[];let from=0;const SIZE=1000;
+  while(true){
+    const {data,error}=await sb.from('gaokao_words').select('*').order('word').range(from,from+SIZE-1);
+    if(error){toast('加载单词失败：'+error.message);return;}
+    all=all.concat(data);
+    if(data.length<SIZE)break;from+=SIZE;
+  }
+  const {data:pd,error:e2}=await sb.from('word_progress').select('word,status').eq('client_id',cid);
+  if(e2)toast('加载进度失败：'+e2.message);
+  progress={};(pd||[]).forEach(p=>progress[p.word]=p.status);
+
+  // 恢复上次的模式与位置
+  let savedMode='all';try{savedMode=localStorage.getItem('fc_mode')||'all';}catch(e){}
+  mode=MODES.includes(savedMode)?savedMode:'all';
+  updateModeButtons();
+  restorePos();
+  updateStats();show();
+  if(resumed)toast('已回到上次学习的单词');
+}
+function restorePos(){
+  buildList();
+  const s=loadStates()[mode];pos=0;
+  if(s){
+    if(s.word){const i=list.findIndex(w=>w.word===s.word);pos=i>=0?i:Math.min(s.pos||0,list.length-1);}
+    else pos=Math.min(s.pos||0,list.length-1);
+    resumed=(pos>0)||(!!s.word);
+  }
+  pos=Math.max(0,pos);
+}
+function buildList(){
+  if(mode==='unseen')list=all.filter(w=>!progress[w.word]);
+  else if(mode==='unknown')list=all.filter(w=>progress[w.word]==='unknown');
+  else if(mode==='known')list=all.filter(w=>progress[w.word]==='known');
+  else list=all.slice();
+}
+function updateModeButtons(){document.querySelectorAll('.mbtn').forEach(x=>x.classList.toggle('on',x.dataset.m===mode));}
+function updateStats(){
+  const k=Object.values(progress).filter(s=>s==='known').length;
+  const u=Object.values(progress).filter(s=>s==='unknown').length;
+  document.getElementById('stTotal').textContent=all.length;
+  document.getElementById('stKnown').textContent=k;
+  document.getElementById('stUnknown').textContent=u;
+  document.getElementById('stLeft').textContent=all.length-k-u;
+}
+function show(){
+  if(!list.length){
+    document.getElementById('card').innerHTML='<div class="done"><h2>这一组没有单词了</h2><div>切换上面的模式，或返回词表查看全部。</div></div>';
+    document.getElementById('pos').textContent='0 / 0';
+    document.getElementById('btnShow').disabled=true;document.getElementById('btnKnown').disabled=true;document.getElementById('btnUnknown').disabled=true;
+    return;
+  }
+  const w=list[pos];shown=false;
+  document.getElementById('idx').innerHTML=(mode==='all'?'全部词':mode==='unseen'?'未确认':mode==='unknown'?'不认识':'认识')+' · 第 '+(pos+1)+' / '+list.length+' 张';
+  document.getElementById('word').textContent=w.word;
+  document.getElementById('hint').style.display='block';
+  document.getElementById('answer').style.display='none';
+  document.getElementById('btnShow').textContent='显示释义';
+  document.getElementById('meaning').textContent=w.meaning||'（无释义）';
+  const b=BKS.filter(([k])=>w[k]).map(([k,n])=>'<span class="badge">'+n+'</span>').join('');
+  document.getElementById('books').innerHTML=b?'课本出现：'+b:'课本未出现';
+  const st=progress[w.word];
+  document.getElementById('curstate').innerHTML=st?('<span class="badge '+(st==='known'?'k':'u')+'">已标记'+(st==='known'?'认识':'不认识')+'</span>'):'<span class="badge">未确认</span>';
+  document.getElementById('btnShow').disabled=false;
+  document.getElementById('btnKnown').disabled=true;document.getElementById('btnUnknown').disabled=true;
+  document.getElementById('pos').textContent=(pos+1)+' / '+list.length;
+  saveState();
+}
+function flip(){
+  if(!list.length)return;
+  shown=!shown;
+  document.getElementById('answer').style.display=shown?'block':'none';
+  document.getElementById('hint').style.display=shown?'none':'block';
+  document.getElementById('btnShow').textContent=shown?'隐藏释义':'显示释义';
+  document.getElementById('btnKnown').disabled=!shown;document.getElementById('btnUnknown').disabled=!shown;
+}
+async function mark(status){
+  if(!list.length||!shown)return;
+  const w=list[pos];
+  const {error}=await sb.from('word_progress').upsert({client_id:cid,word:w.word,status,updated_at:new Date().toISOString()},{onConflict:'client_id,word'});
+  if(error){toast('保存失败：'+error.message);return;}
+  progress[w.word]=status;
+  toast(status==='known'?'✓ 已记录：认识':'✗ 已记录：不认识');
+  updateStats();
+  // 标记会改变各模式列表，重建后定位到下一个未确认的词，保证与下次进入一致
+  const curWord=w.word;
+  const oldList=list.map(x=>x.word);
+  buildList();
+  if(mode!=='all'){
+    const idx=oldList.indexOf(curWord);
+    // 新列表中该词已被移除，定位到原位置的下一个词
+    pos=Math.min(idx,list.length-1);
+    if(pos<0)pos=0;
+    show();saveState();
+  }else{
+    next();
+  }
+}
+function next(){
+  if(pos<list.length-1){pos++;show();saveState();}
+  else toast('已经是本组最后一张');
+}
+function prev(){if(pos>0){pos--;show();saveState();}}
+
+document.getElementById('btnShow').onclick=flip;
+document.getElementById('btnKnown').onclick=()=>mark('known');
+document.getElementById('btnUnknown').onclick=()=>mark('unknown');
+document.getElementById('next').onclick=next;
+document.getElementById('prev').onclick=prev;
+document.querySelector('.modebar').addEventListener('click',e=>{
+  const b=e.target.closest('.mbtn');if(!b)return;
+  saveState();
+  mode=b.dataset.m;updateModeButtons();
+  restorePos();show();
+});
+// 点卡片翻卡 + 左右滑动切换（移动端）
+let tsX=null,tsY=null,swiped=false;
+const card=document.getElementById('card');
+card.addEventListener('click',()=>{if(swiped)return;flip();});
+card.addEventListener('touchstart',e=>{if(e.touches.length===1){tsX=e.touches[0].clientX;tsY=e.touches[0].clientY;}},{passive:true});
+card.addEventListener('touchend',e=>{
+  if(tsX===null||!e.changedTouches.length)return;
+  const dx=e.changedTouches[0].clientX-tsX,dy=e.changedTouches[0].clientY-tsY;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){
+    swiped=true;setTimeout(()=>swiped=false,350);
+    if(dx<0)next();else prev();
+  }
+  tsX=null;tsY=null;
+},{passive:true});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();flip();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();if(shown)mark('unknown');else prev();}
+  else if(e.key==='ArrowRight'){e.preventDefault();if(shown)mark('known');else next();}
+});
+load();
+</script>
+</body></html>
