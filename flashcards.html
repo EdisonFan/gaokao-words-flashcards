@@ -6,11 +6,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>闪卡模式 · 找出不认识的单词</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 <style>
 :root{--bg:#f5f7fa;--card:#fff;--primary:#4472c4;--red:#c00000;--green:#0a8a4a;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);visibility:hidden}
+.userbar{float:right;display:flex;align-items:center;gap:12px;font-size:13px}
+.userbar .who{opacity:.95}
+.userbar .logout{padding:6px 12px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;cursor:pointer;font-size:12px}
+.userbar .logout:hover{background:rgba(255,255,255,.3)}
 .wrap{max-width:900px;margin:0 auto;padding:0 20px}
 header{background:linear-gradient(135deg,#4472c4,#2e5aa0);color:#fff;padding:24px 0}
 header h1{font-size:23px;font-weight:700}
@@ -78,6 +83,7 @@ header p{opacity:.9;font-size:13px;margin-top:4px}
 </head>
 <body>
 <header><div class="wrap">
+<div class="userbar" id="userbar"></div>
 <h1>🎴 闪卡模式</h1>
 <p>先想，再翻卡看释义，然后标记「认识 / 不认识」。每次判断都会记录到数据库，下次进入自动回到上次位置。</p>
 <a href="index.html" class="back">← 返回词表</a>
@@ -131,10 +137,16 @@ const BKS=[['book1','必修1'],['book2','必修2'],['book3','必修3'],['xbook1'
 const MODES=['all','unseen','unknown','known'];
 let all=[],progress={},mode='all',list=[],pos=0,shown=false,cid=null,resumed=false;
 
+// 登录守卫：未登录直接跳转，不渲染任何内容
+const _authed = guardPage();
+if(_authed){
+  renderUserBar(document.getElementById('userbar'));
+  cid=getAuthUser().client_id;
+}
+
 function getCid(){
-  let c=localStorage.getItem('fc_client_id');
-  if(!c){c='c_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);localStorage.setItem('fc_client_id',c);}
-  return c;
+  const u=getAuthUser();
+  return u ? u.client_id : null;
 }
 function loadStates(){try{return JSON.parse(localStorage.getItem('fc_states')||'{}');}catch(e){return {};}}
 function saveState(){
@@ -280,6 +292,6 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='ArrowLeft'){e.preventDefault();if(shown)mark('unknown');else prev();}
   else if(e.key==='ArrowRight'){e.preventDefault();if(shown)mark('known');else next();}
 });
-load();
+if(_authed) load();
 </script>
 </body></html>
