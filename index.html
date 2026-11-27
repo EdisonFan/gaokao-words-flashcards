@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>高考3500词 · 课本出现查询</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--primary:#4472c4;--red:#c00000;--redbg:#fde8e8;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{padding-bottom:env(safe-area-inset-bottom)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header{background:linear-gradient(135deg,#4472c4,#2e5aa0);color:#fff;padding:32px 0 28px}
+header h1{font-size:26px;font-weight:700;margin-bottom:6px}
+header p{opacity:.9;font-size:14px}
+.flashlink{display:inline-block;margin-top:14px;padding:10px 20px;background:#fff;color:var(--primary);border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.flashlink:hover{background:#eef2f9;transform:translateY(-1px)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0}
+.stat{background:var(--card);border-radius:12px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.stat .num{font-size:28px;font-weight:700;color:var(--primary);line-height:1.2}
+.stat .lbl{font-size:13px;color:var(--muted);margin-top:4px}
+.panel{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);margin-bottom:18px}
+.searchrow{display:flex;gap:12px;flex-wrap:wrap}
+#q{flex:1;min-width:240px;padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;outline:none}
+#q:focus{border-color:var(--primary)}
+select{padding:12px;border:2px solid var(--border);border-radius:8px;font-size:14px;background:#fff;outline:none}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.fbtn{padding:7px 14px;border:1px solid var(--border);border-radius:20px;background:#fff;color:var(--text);cursor:pointer;font-size:13px;transition:.15s}
+.fbtn:hover{border-color:var(--primary);color:var(--primary)}
+.fbtn.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.info{color:var(--muted);font-size:13px;margin:14px 0 6px}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+th{background:#eef2f9;color:#374151;font-weight:600;font-size:13px;padding:12px 10px;text-align:left;white-space:nowrap}
+td{padding:11px 10px;border-top:1px solid var(--border);font-size:14px;vertical-align:middle}
+tr:hover td{background:#fafbff}
+.word{font-weight:700;font-size:16px;color:var(--text)}
+.mean{color:#4b5563;font-size:13px;max-width:420px}
+.chk{text-align:center;color:var(--red);font-weight:700;font-size:16px}
+.empty{text-align:center;color:var(--muted);padding:50px 20px}
+.pager{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px 0}
+.pager button{padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:14px}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.pager span{font-size:14px;color:var(--muted)}
+.loading{text-align:center;padding:50px;color:var(--muted)}
+@media(min-width:761px) and (max-width:1024px){.wrap{max-width:760px}}
+@media(max-width:760px){
+.wrap{padding:0 12px}
+header{padding:20px 0}
+header h1{font-size:21px}
+.stats{grid-template-columns:repeat(2,1fr);gap:10px}
+.stat .num{font-size:22px}
+#q,select{padding:11px 12px;font-size:16px}
+.fbtn{padding:8px 12px;min-height:38px}
+th,td{padding:9px 6px;font-size:12px}
+th:nth-child(n+3),td:nth-child(n+3){padding:9px 3px}
+.word{font-size:14px}
+.mean{font-size:12px}
+.pager button{padding:10px 14px;min-height:42px}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>高考3500词 · 课本出现查询</h1>
+<p>搜集版 3,844 词 · 中文释义 + 人教版七册教材出现标记（必修1-3 / 选择性必修1-4）</p>
+<a href="flashcards.html" class="flashlink">🎴 进入闪卡模式 · 标记认识/不认识 →</a>
+</div></header>
+
+<div class="wrap">
+<div class="stats">
+<div class="stat"><div class="num" id="s1">—</div><div class="lbl">高考词总数</div></div>
+<div class="stat"><div class="num" id="s2">—</div><div class="lbl">课本出现（覆盖）</div></div>
+<div class="stat"><div class="num" id="s3">—</div><div class="lbl">覆盖率</div></div>
+<div class="stat"><div class="num" id="s4">—</div><div class="lbl">当前结果</div></div>
+</div>
+
+<div class="panel">
+<div class="searchrow">
+<input id="q" placeholder="输入单词或中文释义搜索…" autocomplete="off">
+<select id="sort">
+<option value="word">按字母排序</option>
+<option value="count_desc">按出现册数（多→少）</option>
+<option value="count_asc">按出现册数（少→多）</option>
+</select>
+</div>
+<div class="filters" id="filters">
+<button class="fbtn on" data-f="all">全部词</button>
+<button class="fbtn" data-f="in">课本出现</button>
+<button class="fbtn" data-f="out">课本未出现</button>
+<span style="width:12px"></span>
+<button class="fbtn" data-f="book1">必修1</button>
+<button class="fbtn" data-f="book2">必修2</button>
+<button class="fbtn" data-f="book3">必修3</button>
+<button class="fbtn" data-f="xbook1">选必1</button>
+<button class="fbtn" data-f="xbook2">选必2</button>
+<button class="fbtn" data-f="xbook3">选必3</button>
+<button class="fbtn" data-f="xbook4">选必4</button>
+</div>
+</div>
+
+<div class="info" id="info">加载中…</div>
+<table>
+<thead><tr>
+<th style="width:150px">单词</th><th>中文释义</th>
+<th style="width:64px" title="必修1">必1</th><th style="width:64px" title="必修2">必2</th><th style="width:64px" title="必修3">必3</th>
+<th style="width:64px" title="选择性必修1">选1</th><th style="width:64px" title="选择性必修2">选2</th><th style="width:64px" title="选择性必修3">选3</th><th style="width:64px" title="选择性必修4">选4</th>
+</tr></thead>
+<tbody id="tbody"><tr><td colspan="9" class="loading">正在从 Supabase 加载数据…</td></tr></tbody>
+</table>
+<div class="pager">
+<button id="prev">← 上一页</button><span id="pg">1 / 1</span><button id="next">下一页 →</button>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://vrpfpjlhqqsgbgpuxeqf.supabase.co';
+const SUPABASE_KEY='sb_publishable_q6KSt9ZKO7Ql5uKrMrIWyQ_07t42Lwp';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const PAGE=30;
+const BOOKS=['book1','book2','book3','xbook1','xbook2','xbook3','xbook4'];
+let all=[],filter='all',page=1,kw='',sort='word';
+
+async function load(){
+  all=[]; const SIZE=1000; let from=0;
+  while(true){
+    const {data,error}=await sb.from('gaokao_words').select('*').order('word').range(from,from+SIZE-1);
+    if(error){document.getElementById('tbody').innerHTML='<tr><td colspan="9" class="empty">加载失败：'+error.message+'</td></tr>';return;}
+    all=all.concat(data);
+    if(data.length<SIZE)break;
+    from+=SIZE;
+  }
+  document.getElementById('s1').textContent=all.length;
+  const inb=all.filter(w=>w.book_count>0).length;
+  document.getElementById('s2').textContent=inb;
+  document.getElementById('s3').textContent=(inb/all.length*100).toFixed(1)+'%';
+  render();
+}
+function render(){
+  let rows=all;
+  if(kw){const k=kw.toLowerCase();rows=rows.filter(w=>w.word.toLowerCase().includes(k)||(w.meaning||'').includes(kw));}
+  if(filter==='in')rows=rows.filter(w=>w.book_count>0);
+  else if(filter==='out')rows=rows.filter(w=>w.book_count===0);
+  else if(BOOKS.includes(filter))rows=rows.filter(w=>w[filter]);
+  if(sort==='count_desc')rows=[...rows].sort((a,b)=>b.book_count-a.book_count||a.word.localeCompare(b.word));
+  else if(sort==='count_asc')rows=[...rows].sort((a,b)=>a.book_count-b.book_count||a.word.localeCompare(b.word));
+  document.getElementById('s4').textContent=rows.length;
+  const pages=Math.max(1,Math.ceil(rows.length/PAGE));
+  if(page>pages)page=pages;
+  document.getElementById('pg').textContent=page+' / '+pages;
+  document.getElementById('prev').disabled=page<=1;
+  document.getElementById('next').disabled=page>=pages;
+  document.getElementById('info').textContent='共 '+rows.length+' 个结果'+(kw?'（搜索：'+kw+'）':'');
+  const slice=rows.slice((page-1)*PAGE,page*PAGE);
+  if(!slice.length){document.getElementById('tbody').innerHTML='<tr><td colspan="9" class="empty">没有匹配的单词</td></tr>';return;}
+  document.getElementById('tbody').innerHTML=slice.map(w=>{
+    const marks=BOOKS.map(b=>'<td class="chk">'+(w[b]?'√':'')+'</td>').join('');
+    return '<tr><td class="word">'+esc(w.word)+'</td><td class="mean">'+esc(w.meaning||'')+'</td>'+marks+'</tr>';
+  }).join('');
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+let timer;
+document.getElementById('q').addEventListener('input',e=>{kw=e.target.value.trim();page=1;clearTimeout(timer);timer=setTimeout(render,200);});
+document.getElementById('sort').addEventListener('change',e=>{sort=e.target.value;page=1;render();});
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('.fbtn');if(!b)return;
+  document.querySelectorAll('.fbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');filter=b.dataset.f;page=1;render();
+});
+document.getElementById('prev').onclick=()=>{if(page>1){page--;render();window.scrollTo(0,300)}};
+document.getElementById('next').onclick=()=>{page++;render();window.scrollTo(0,300)};
+load();
+</script>
+</body></html>
