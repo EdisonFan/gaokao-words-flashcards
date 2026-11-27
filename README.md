@@ -2,7 +2,9 @@
 
 基于高考3500词表与人教版七本英语教材（必修1-3、选择性必修1-4）出现情况的在线查询与闪卡学习工具。
 
-**在线访问：** https://gaokao-words-v3.surge.sh
+**在线访问：** https://edisonfan.github.io/gaokao-words-flashcards/
+
+> **需要登录**：账号由管理员分配（存于 Supabase `users` 表），未登录无法访问词表和闪卡页。
 
 ## 功能
 
@@ -35,12 +37,24 @@
 - **覆盖率** = 命中词数 ÷ 高考词表总数（主口径）
 - **精度** = 命中词数 ÷ 文本去重词数
 
+## 登录与用户
+
+- `login.html`：登录页，用户名 + 密码校验（查 Supabase `users` 表）
+- `auth.js`：公共守卫，未登录访问 `index.html` / `flashcards.html` 会跳转到登录页
+- 登录后把该用户的 `client_id` 写入本地，闪卡标记的进度（`word_progress`）与登录用户绑定
+- 支持退出登录
+
+Supabase 数据表：
+- `gaokao_words`：词表、释义、七本教材出现标记
+- `word_progress`：学习进度（client_id + word + status）
+- `users`：用户（client_id、display_name、username、password、created_at、last_seen）
+
+> 注意：当前密码为明文存储、RLS 允许匿名读写，仅适合个人/内部使用。正式对外需改为密码哈希 + 收紧权限。
+
 ## 技术栈
 
 - 纯静态 HTML / CSS / JavaScript，无构建步骤
-- Supabase（PostgREST）作为后端：
-  - `gaokao_words`：词表、释义、七本教材出现标记
-  - `word_progress`：学习进度（client_id + word + status）
+- Supabase（PostgREST）作为后端
 - 直接部署到任意静态托管（GitHub Pages / Netlify / surge.sh 均可）
 
 ## 本地运行
